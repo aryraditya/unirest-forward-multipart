@@ -2,7 +2,11 @@ package com.example.fileuploader;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.FileSystems;
+import java.util.List;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
@@ -31,12 +35,20 @@ public class FileUploaderApplication {
 	}
 
 	@PostMapping(value = "/upload")
-	public ResponseEntity<String> postMethodName(@RequestPart("file") MultipartFile file) throws IOException {
+	public ResponseEntity<String> postMethodName(@RequestPart("file") List<MultipartFile> file) throws IOException {
 
-		MultipartBody multipartBody = Unirest
-				// .post("https://webhook.site/a0d15618-3fa0-4bea-a746-f2770c55003c")
-				.post("http://localhost:3050/save")
-				.field("file", new ByteArrayInputStream(file.getBytes()), "yolo.jpeg");
+		log.info("file -> {}", file);
+
+		var multipartBody = Unirest
+				.post("https://webhook.site/a0d15618-3fa0-4bea-a746-f2770c55003c")
+				.multiPartContent();
+
+		Integer i = 0;
+
+		for (var f : file) {
+			multipartBody.field("file[]", new ByteArrayInputStream(f.getBytes()), System.currentTimeMillis() + i + ".jpeg");
+			i++;
+		}
 
 		var response = multipartBody.asString();
 
@@ -46,11 +58,14 @@ public class FileUploaderApplication {
 	}
 
 	@PostMapping(value = "/save")
-	public ResponseEntity<String> save(@RequestPart("file") MultipartFile file)
+	public ResponseEntity<String> save(@RequestPart("file") List<MultipartFile> file)
 			throws IllegalStateException, IOException {
 		log.info("image saved {}", file);
 
-		file.transferTo(FileSystems.getDefault().getPath("yolo.jpg").toAbsolutePath());
+		for (var f : file) {
+			log.info("image file --> {}", f);
+		}
+		// file.transferTo(FileSystems.getDefault().getPath("yolo.jpg").toAbsolutePath());
 		log.info("saved --> {} ", FileSystems.getDefault().getPath("yolo.jpg").toAbsolutePath().toString());
 
 		return ResponseEntity.ok().body("ok");
